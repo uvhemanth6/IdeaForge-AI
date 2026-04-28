@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.env
+.env.*
+
+# VS Code
+.vscode/
+
+# Node.js
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Data
+backend/data/*.json
+!backend/data/sample_ideas.json
+
+# Build
+frontend/dist/
+
+# Misc
+*.swp
+*.swo
+
+# Ignore environment and secret files
+secrets.env
