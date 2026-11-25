@@ -10,11 +10,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 
-def load_env_file(path: Path) -> None:
+def load_env_file(path: Path, override: bool = False) -> None:
     try:
         from dotenv import load_dotenv
 
-        load_dotenv(path)
+        load_dotenv(path, override=override)
         return
     except ImportError:
         pass
@@ -27,10 +27,14 @@ def load_env_file(path: Path) -> None:
         if not stripped or stripped.startswith("#") or "=" not in stripped:
             continue
         key, value = stripped.split("=", 1)
-        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+        if override:
+            os.environ[key.strip()] = value.strip().strip('"').strip("'")
+        else:
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 
-load_env_file(Path(__file__).resolve().parent / ".env")
+ENV_PATH = Path(__file__).resolve().parent / ".env"
+load_env_file(ENV_PATH, override=True)
 
 from firecrawl_utils import fetch_competitors
 from llm_utils import contextual_top_gap, generate_validation_report
@@ -62,8 +66,15 @@ app.add_middleware(
 
 
 @app.get("/api/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
+async def health() -> dict[str, Any]:
+    load_env_file(ENV_PATH, override=True)
+    return {
+        "status": "ok",
+        "firecrawl_configured": bool((os.getenv("FIRECRAWL_API_KEY") or "").strip()),
+        "llm_provider": os.getenv("LLM_PROVIDER", "auto"),
+        "gemini_configured": bool((os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()),
+        "openai_configured": bool((os.getenv("OPENAI_API_KEY") or "").strip()),
+    }
 
 
 @app.get("/api/sample-ideas")
@@ -75,7 +86,7 @@ async def sample_ideas() -> list[dict[str, Any]]:
 @app.get("/api/history")
 async def history() -> list[dict[str, Any]]:
     entries = load_entries()
-    return list(reversed(entries))
+    return sorted(entries, key=lambda entry: entry.get("created_at") or "", reverse=True)
 
 
 @app.get("/api/history/{entry_id}")
@@ -95,15 +106,23 @@ async def delete_history_entry(entry_id: str) -> dict[str, str]:
 
 @app.post("/api/validate")
 async def validate_idea(payload: IdeaInput) -> dict[str, Any]:
+    load_env_file(ENV_PATH, override=True)
     idea = payload.model_dump()
     history_entries = load_entries()
     memory_context = compare_with_history(idea, history_entries)
-    competitors = await fetch_competitors(
+
+    competitors, firecrawl_meta = await fetch_competitors(
         payload.idea_name,
         payload.problem_statement,
         payload.target_audience,
     )
-    report = await generate_validation_report(idea, competitors, memory_context)
+
+    report = await generate_validation_report(
+        idea,
+        competitors,
+        memory_context,
+        firecrawl_meta=firecrawl_meta,
+    )
     saved = save_entry(idea, report)
     return saved
 

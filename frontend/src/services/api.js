@@ -28,13 +28,15 @@ function formatErrorDetail(error) {
 }
 
 function mergeHistory(remoteEntries) {
-  const merged = [...getLocalHistory(), ...(Array.isArray(remoteEntries) ? remoteEntries : [])];
+  const merged = [...(Array.isArray(remoteEntries) ? remoteEntries : []), ...getLocalHistory()];
   const seen = new Set();
-  return merged.filter((entry) => {
-    if (!entry?.id || seen.has(entry.id)) return false;
-    seen.add(entry.id);
-    return true;
-  });
+  return merged
+    .filter((entry) => {
+      if (!entry?.id || seen.has(entry.id)) return false;
+      seen.add(entry.id);
+      return true;
+    })
+    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 }
 
 async function request(path, options = {}) {
@@ -48,7 +50,10 @@ async function request(path, options = {}) {
       ...options
     });
   } catch {
-    throw new ApiError("Backend is unavailable. Using local demo analysis.", 0);
+    throw new ApiError(
+      `Backend server is unreachable at ${API_BASE}. Start the FastAPI backend to run live Firecrawl validation.`,
+      0
+    );
   }
 
   if (!response.ok) {
@@ -61,15 +66,10 @@ async function request(path, options = {}) {
 
 export const api = {
   validateIdea: async (payload) => {
-    try {
-      return await request("/validate", {
-        method: "POST",
-        body: JSON.stringify(payload)
-      });
-    } catch (error) {
-      if (error.status === 0) return createLocalValidation(payload);
-      throw error;
-    }
+    return request("/validate", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
   },
   getHistory: async () => {
     try {

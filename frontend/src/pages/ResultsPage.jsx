@@ -142,6 +142,35 @@ export default function ResultsPage() {
                   <p className="mt-3 max-w-3xl text-sm leading-7 text-cream/45">
                     {idea.problem_statement}
                   </p>
+                  {report.analysis_meta && (
+                    <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px]">
+                      <span
+                        className={`inline-flex rounded-full border px-3 py-1 font-semibold ${
+                          report.analysis_meta.competitor_source === "firecrawl_live"
+                            ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-200"
+                            : "border-amber-400/30 bg-amber-400/10 text-amber-200"
+                        }`}
+                      >
+                        Firecrawl:{" "}
+                        {report.analysis_meta.competitor_source === "firecrawl_live"
+                          ? `Live Web (${report.analysis_meta.firecrawl_results || 0} sources)`
+                          : `Fallback (${report.analysis_meta.firecrawl_attempts || 0} attempts)`}
+                      </span>
+                      <span className="inline-flex rounded-full border border-white/15 bg-white/5 px-3 py-1 font-semibold text-cream/75">
+                        Engine: {report.analysis_meta.analysis_engine}
+                      </span>
+                      {report.analysis_meta.firecrawl_warning && (
+                        <span className="inline-flex rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-amber-200">
+                          {report.analysis_meta.firecrawl_warning}
+                        </span>
+                      )}
+                      {report.analysis_meta.llm_warning && (
+                        <span className="inline-flex rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-amber-200">
+                          {report.analysis_meta.llm_warning}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <LikeButton ideaId={idea.idea_name} entry={result} />
               </div>

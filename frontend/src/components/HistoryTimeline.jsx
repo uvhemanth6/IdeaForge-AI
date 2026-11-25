@@ -1,25 +1,59 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { GitCompare, ExternalLink, Trash2 } from "lucide-react";
+import { Clock, GitCompare, ExternalLink, Trash2 } from "lucide-react";
 import LikeButton from "./LikeButton";
 
+function formatDateTime(value) {
+  if (!value) return "Unknown date";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
 export default function HistoryTimeline({ entries, selectedIds, onToggle, onDelete }) {
+  const orderedEntries = [...entries].sort(
+    (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+  );
+
   return (
     <div className="grid gap-3">
-      {entries.map((entry, i) => {
+      {orderedEntries.map((entry, i) => {
         const active = selectedIds.includes(entry.id);
         return (
-          <motion.div key={entry.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
+          <motion.div
+            key={entry.id}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.03 }}
             className={`text-left rounded-xl border p-4 transition-all card-hover ${
               active
                 ? "border-terracotta/20 dark:border-aurora-purple/20 bg-ink/90 dark:bg-night-card text-cream"
                 : "border-ink/4 dark:border-white/4 bg-white/50 dark:bg-white/3 text-ink hover:-translate-y-0.5"
-            }`}>
+            }`}
+          >
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <p className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${active ? "text-cream/45" : "text-ink/25 dark:text-white/20"}`}>
-                  {new Date(entry.created_at).toLocaleString()}
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                      active ? "text-cream/60" : "text-ink/45 dark:text-white/40"
+                    }`}
+                  >
+                    <Clock className="h-3 w-3" />
+                    {formatDateTime(entry.created_at)}
+                  </span>
+                  {i === 0 && (
+                    <span className="inline-flex rounded-full bg-moss/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-moss dark:bg-aurora-green/15 dark:text-aurora-green">
+                      Latest
+                    </span>
+                  )}
+                </div>
                 <h3 className="mt-1.5 font-display text-xl">{entry.idea.idea_name}</h3>
               </div>
               <div className="flex items-center gap-2.5">
